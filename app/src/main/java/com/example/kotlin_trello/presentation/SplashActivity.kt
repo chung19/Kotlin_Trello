@@ -1,13 +1,15 @@
-package com.example.kotlin_trello
+package com.example.kotlin_trello.presentation
 
 import android.content.Intent
 import android.graphics.Typeface
 import android.os.Bundle
+import android.os.Handler
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
-import kotlinx.android.synthetic.main.activity_intro.*
+import com.example.kotlin_trello.R
+import kotlinx.android.synthetic.main.activity_splash.*
 
-class IntroActivity : AppCompatActivity() {
+class SplashActivity : AppCompatActivity() {
 
     /**
      * This function is auto created by Android when the Activity Class is created.
@@ -16,7 +18,7 @@ class IntroActivity : AppCompatActivity() {
         //This call the parent constructor
         super.onCreate(savedInstanceState)
         // This is used to align the xml view to this class
-        setContentView(R.layout.activity_intro)
+        setContentView(R.layout.activity_splash)
 
         // This is used to hide the status bar and make the splash screen as a full screen activity.
         window.setFlags(
@@ -24,17 +26,16 @@ class IntroActivity : AppCompatActivity() {
             WindowManager.LayoutParams.FLAG_FULLSCREEN
         )
 
+        // This is used to get the file from the assets folder and set it to the title textView.
         val typeface: Typeface =
             Typeface.createFromAsset(assets, "carbon bl.ttf")
-        tv_app_name_intro.typeface = typeface
+        tv_app_name.typeface = typeface
 
-        // TODO (Step 7: Add a click event for Sign Up btn and launch the Sign Up Screen.)
-        // START
-        btn_sign_up_intro.setOnClickListener {
-
-            // Launch the sign up screen.
-            startActivity(Intent(this@IntroActivity, SignUpActivity::class.java))
-        }
-        // END
+        // Adding the handler to after the a task after some delay.
+        Handler().postDelayed({
+            // Start the Intro Activity
+            startActivity(Intent(this@SplashActivity, IntroActivity::class.java))
+            finish() // Call this when your activity is done and should be closed.
+        }, 2500) // Here we pass the delay time in milliSeconds after which the splash activity will disappear.
     }
 }
