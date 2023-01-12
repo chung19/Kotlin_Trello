@@ -6,11 +6,12 @@ import android.text.TextUtils
 import android.view.WindowManager
 import android.widget.Toast
 import com.example.kotlin_trello.R
+import com.example.kotlin_trello.firebase.FirestoreClass
+import com.example.kotlin_trello.models.User
 import com.google.firebase.auth.FirebaseAuth
 
 import kotlinx.android.synthetic.main.activity_sign_in.*
 
-// TODO (Step 1: Extend the BaseActivity instead of AppCompatActivity.)
 class SignInActivity : BaseActivity() {
     /**
      * This function is auto created by Android when the Activity Class is created.
@@ -23,18 +24,15 @@ class SignInActivity : BaseActivity() {
 
         // This is used to hide the status bar and make the splash screen as a full screen activity.
         window.setFlags(
-            WindowManager.LayoutParams.FLAG_FULLSCREEN,
+            WindowManager.LayoutParams. FLAG_FULLSCREEN,
             WindowManager.LayoutParams.FLAG_FULLSCREEN
         )
 
         setupActionBar()
 
-
-        // START
         btn_sign_in.setOnClickListener {
             signInRegisteredUser()
         }
-        // END
     }
 
     /**
@@ -53,8 +51,6 @@ class SignInActivity : BaseActivity() {
         toolbar_sign_in_activity.setNavigationOnClickListener { onBackPressed() }
     }
 
-
-    // START
     /**
      * A function for Sign-In using the registered user using the email and password.
      */
@@ -70,16 +66,9 @@ class SignInActivity : BaseActivity() {
             // Sign-In using FirebaseAuth
             FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener { task ->
-                    hideProgressDialog()
                     if (task.isSuccessful) {
-
-                        Toast.makeText(
-                            this@SignInActivity,
-                            "You have successfully signed in.",
-                            Toast.LENGTH_LONG
-                        ).show()
-
-                        startActivity(Intent(this@SignInActivity, MainActivity::class.java))
+                        // Calling the FirestoreClass signInUser function to get the data of user from database.
+                        FirestoreClass().loadUserData(this@SignInActivity)
                     } else {
                         Toast.makeText(
                             this@SignInActivity,
@@ -90,10 +79,7 @@ class SignInActivity : BaseActivity() {
                 }
         }
     }
-    // END
 
-    // TODO (Step 3: A function to validate the entries of a user.)
-    // START
     /**
      * A function to validate the entries of a user.
      */
@@ -108,5 +94,15 @@ class SignInActivity : BaseActivity() {
             true
         }
     }
-}
 
+    /**
+     * A function to get the user details from the firestore database after authentication.
+     */
+    fun signInSuccess(user: User) {
+
+        hideProgressDialog()
+
+        startActivity(Intent(this@SignInActivity, MainActivity::class.java))
+        this.finish()
+    }
+}

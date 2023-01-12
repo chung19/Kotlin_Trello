@@ -3,11 +3,14 @@ buildscript {
     repositories {
         google()
         jcenter()
+        mavenCentral()
+     maven { url 'https://jitpack.io' }
+
+
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:4.1.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        // TODO (Step 1: After adding the project to the Firebase Console add the dependency here and google-services file to the app folder.)
         // START
         classpath 'com.google.gms:google-services:4.3.3'
         // END

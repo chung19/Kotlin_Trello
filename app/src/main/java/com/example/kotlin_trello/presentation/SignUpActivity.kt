@@ -1,9 +1,12 @@
 package com.example.kotlin_trello.presentation
+import com.example.kotlin_trello.R
+import kotlinx.android.synthetic.main.activity_sign_up.*
 import android.os.Bundle
 import android.text.TextUtils
-import android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN
+import android.view.WindowManager
 import android.widget.Toast
-import com.example.kotlin_trello.R
+import com.example.kotlin_trello.firebase.FirestoreClass
+import com.example.kotlin_trello.models.User
 import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
@@ -11,21 +14,36 @@ import com.google.firebase.auth.FirebaseUser
 import kotlinx.android.synthetic.main.activity_sign_up.*
 
 class SignUpActivity : BaseActivity() {
+
+    /**
+     * This function is auto created by Android when the Activity Class is created.
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
+        //This call the parent constructor
         super.onCreate(savedInstanceState)
+        // This is used to align the xml view to this class
         setContentView(R.layout.activity_sign_up)
+
+        // This is used to hide the status bar and make the splash screen as a full screen activity.
         window.setFlags(
-            FLAG_FULLSCREEN,
-            FLAG_FULLSCREEN
+            WindowManager.LayoutParams.FLAG_FULLSCREEN,
+            WindowManager.LayoutParams.FLAG_FULLSCREEN
         )
+
         setupActionBar()
+
+        // Click event for sign-up button.
         btn_sign_up.setOnClickListener {
             registerUser()
         }
     }
+
+    /**
+     * A function for actionBar Setup.
+     */
     private fun setupActionBar() {
 
-       setSupportActionBar(toolbar_sign_up_activity)
+        setSupportActionBar(toolbar_sign_up_activity)
 
         val actionBar = supportActionBar
         if (actionBar != null) {
@@ -35,6 +53,11 @@ class SignUpActivity : BaseActivity() {
 
         toolbar_sign_up_activity.setNavigationOnClickListener { onBackPressed() }
     }
+
+    /**
+     * A function to register a user to our app using the Firebase.
+     * For more details visit: https://firebase.google.com/docs/auth/android/custom-auth
+     */
     private fun registerUser() {
         // Here we get the text from editText and trim the space
         val name: String = et_name.text.toString().trim { it <= ' ' }
@@ -48,8 +71,7 @@ class SignUpActivity : BaseActivity() {
                 .addOnCompleteListener(
                     OnCompleteListener<AuthResult> { task ->
 
-                        // Hide the progress dialog
-                        hideProgressDialog()
+                        // TODO (Step 9: Move hide progressbar function in the userRegisteredSuccess function.)
 
                         // If the registration is successfully done
                         if (task.isSuccessful) {
@@ -59,24 +81,28 @@ class SignUpActivity : BaseActivity() {
                             // Registered Email
                             val registeredEmail = firebaseUser.email!!
 
-                            Toast.makeText(
-                                this@SignUpActivity,
-                                "$name you have successfully registered with email id $registeredEmail.",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            // TODO(Step 1: As you can see we are now authenticated by Firebase but for more inserting more details we need to use the DATABASE in Firebase.)
+                            // START
+                            // Before start with database we need to perform some steps in Firebase Console and add a dependency in Gradle file.
+                            // Follow the Steps:
+                            // Step 1: Go to the "Database" tab in the Firebase Console in your project details in the navigation bar under "Develop".
+                            // Step 2: In the Database Page and Click on the Create Database in the Cloud Firestore in the test mode. Click on Next
+                            // Step 3: Select the Cloud Firestore location and press the Done.
+                            // Step 4: Now the database is created in the test mode and now add the cloud firestore dependency.
+                            // Step 5: For more details visit the link: https://firebase.google.com/docs/firestore
+                            // END
 
-                            /**
-                             * Here the new user registered is automatically signed-in so we just sign-out the user from firebase
-                             * and send him to Intro Screen for Sign-In
-                             */
+                            // TODO (Step 4: Now here we will make an entry in the Database of a new user registered.)
+                            // START
+                            val user = User(
+                                firebaseUser.uid, name, registeredEmail
+                            )
 
-                            /**
-                             * Here the new user registered is automatically signed-in so we just sign-out the user from firebase
-                             * and send him to Intro Screen for Sign-In
-                             */
-                            FirebaseAuth.getInstance().signOut()
-                            // Finish the Sign-Up Screen
-                            finish()
+                            // call the registerUser function of FirestoreClass to make an entry in the database.
+                            FirestoreClass().registerUser(this@SignUpActivity, user)
+                            // END
+
+                            // TODO (Step 10: Move the activity finish line code in the success function.)
                         } else {
                             Toast.makeText(
                                 this@SignUpActivity,
@@ -111,4 +137,30 @@ class SignUpActivity : BaseActivity() {
             }
         }
     }
+
+    // TODO (Step 8: Create a function to be called the user is registered successfully and entry is made in the firestore database.)
+    // START
+    /**
+     * A function to be called the user is registered successfully and entry is made in the firestore database.
+     */
+    fun userRegisteredSuccess() {
+
+        Toast.makeText(
+            this@SignUpActivity,
+            "You have successfully registered.",
+            Toast.LENGTH_SHORT
+        ).show()
+
+        // Hide the progress dialog
+        hideProgressDialog()
+
+        /**
+         * Here the new user registered is automatically signed-in so we just sign-out the user from firebase
+         * and send him to Intro Screen for Sign-In
+         */
+        FirebaseAuth.getInstance().signOut()
+        // Finish the Sign-Up Screen
+        finish()
+    }
+    // END
 }
