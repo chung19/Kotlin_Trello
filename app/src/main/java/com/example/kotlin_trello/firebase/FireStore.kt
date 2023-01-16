@@ -97,24 +97,38 @@ class FirestoreClass {
             }
     }
 
+    // START
     /**
      * A function to update the user profile data into the database.
      */
-    fun updateUserProfileData(activity: MyProfileActivity, userHashMap: HashMap<String, Any>) {
+    fun updateUserProfileData(activity: Activity, userHashMap: HashMap<String, Any>) {
         mFireStore.collection(Constants.USERS) // Collection Name
             .document(getCurrentUserID()) // Document ID
             .update(userHashMap) // A hashmap of fields which are to be updated.
             .addOnSuccessListener {
-                // Profile data is updated successfully.
-                Log.e(activity.javaClass.simpleName, "Profile Data updated successfully!")
-
-                Toast.makeText(activity, "Profile updated successfully!", Toast.LENGTH_SHORT).show()
+                Log.e(activity.javaClass.simpleName, "Data updated successfully!")
 
                 // Notify the success result.
-                activity.profileUpdateSuccess()
+
+                when (activity) {
+                    is MainActivity -> {
+                        activity.tokenUpdateSuccess()
+                    }
+                    is MyProfileActivity -> {
+                        activity.profileUpdateSuccess()
+                    }
+                }
             }
             .addOnFailureListener { e ->
-                activity.hideProgressDialog()
+                when (activity) {
+                    is MainActivity -> {
+                        activity.hideProgressDialog()
+                    }
+                    is MyProfileActivity -> {
+                        activity.hideProgressDialog()
+                    }
+                }
+
                 Log.e(
                     activity.javaClass.simpleName,
                     "Error while creating a board.",
@@ -122,6 +136,7 @@ class FirestoreClass {
                 )
             }
     }
+    // END
 
     /**
      * A function for creating a board and making an entry in the database.
@@ -193,14 +208,11 @@ class FirestoreClass {
             .addOnSuccessListener { document ->
                 Log.e(activity.javaClass.simpleName, document.toString())
 
-                // TODO (Step 1: Assign the board document id to the Board Detail object)
-                // START
                 val board = document.toObject(Board::class.java)!!
                 board.documentId = document.id
 
                 // Send the result of board to the base activity.
                 activity.boardDetails(board)
-                // END
             }
             .addOnFailureListener { e ->
                 activity.hideProgressDialog()
@@ -208,11 +220,10 @@ class FirestoreClass {
             }
     }
 
-    // TODO (Step 9: Create a function to add the task list in the board detail.)
     /**
      * A function to create a task list in the board detail.
      */
-    fun addUpdateTaskList(activity: TaskListActivity, board: Board) {
+    fun addUpdateTaskList(activity: Activity, board: Board) {
 
         val taskListHashMap = HashMap<String, Any>()
         taskListHashMap[Constants.TASK_LIST] = board.taskList
@@ -223,7 +234,111 @@ class FirestoreClass {
             .addOnSuccessListener {
                 Log.e(activity.javaClass.simpleName, "TaskList updated successfully.")
 
-                activity.addUpdateTaskListSuccess()
+                if (activity is TaskListActivity) {
+                    activity.addUpdateTaskListSuccess()
+                } else if (activity is CardDetailsActivity) {
+                    activity.addUpdateTaskListSuccess()
+                }
+            }
+            .addOnFailureListener { e ->
+                if (activity is TaskListActivity) {
+                    activity.hideProgressDialog()
+                } else if (activity is TaskListActivity) {
+                    activity.hideProgressDialog()
+                }
+                Log.e(activity.javaClass.simpleName, "Error while creating a board.", e)
+            }
+    }
+
+    /**
+     * A function to get the list of user details which is assigned to the board.
+     */
+    fun getAssignedMembersListDetails(activity: Activity, assignedTo: ArrayList<String>) {
+
+        mFireStore.collection(Constants.USERS) // Collection Name
+            .whereIn(
+                Constants.ID,
+                assignedTo
+            ) // Here the database field name and the id's of the members.
+            .get()
+            .addOnSuccessListener { document ->
+                Log.e(activity.javaClass.simpleName, document.documents.toString())
+
+                val usersList: ArrayList<User> = ArrayList()
+
+                for (i in document.documents) {
+                    // Convert all the document snapshot to the object using the data model class.
+                    val user = i.toObject(User::class.java)!!
+                    usersList.add(user)
+                }
+
+                if (activity is MembersActivity) {
+                    activity.setupMembersList(usersList)
+                } else if (activity is TaskListActivity) {
+                    activity.boardMembersDetailList(usersList)
+                }
+            }
+            .addOnFailureListener { e ->
+                if (activity is MembersActivity) {
+                    activity.hideProgressDialog()
+                } else if (activity is TaskListActivity) {
+                    activity.hideProgressDialog()
+                }
+                Log.e(
+                    activity.javaClass.simpleName,
+                    "Error while creating a board.",
+                    e
+                )
+            }
+    }
+
+    /**
+     * A function to get the user details from Firestore Database using the email address.
+     */
+    fun getMemberDetails(activity: MembersActivity, email: String) {
+
+        // Here we pass the collection name from which we wants the data.
+        mFireStore.collection(Constants.USERS)
+            // A where array query as we want the list of the board in which the user is assigned. So here you can pass the current user id.
+            .whereEqualTo(Constants.EMAIL, email)
+            .get()
+            .addOnSuccessListener { document ->
+                Log.e(activity.javaClass.simpleName, document.documents.toString())
+
+                if (document.documents.size > 0) {
+                    val user = document.documents[0].toObject(User::class.java)!!
+                    // Here call a function of base activity for transferring the result to it.
+                    activity.memberDetails(user)
+                } else {
+                    activity.hideProgressDialog()
+                    activity.showErrorSnackBar("No such member found.")
+                }
+
+            }
+            .addOnFailureListener { e ->
+                activity.hideProgressDialog()
+                Log.e(
+                    activity.javaClass.simpleName,
+                    "Error while getting user details",
+                    e
+                )
+            }
+    }
+
+    /**
+     * A function to assign a updated members list to board.
+     */
+    fun assignMemberToBoard(activity: MembersActivity, board: Board, user: User) {
+
+        val assignedToHashMap = HashMap<String, Any>()
+        assignedToHashMap[Constants.ASSIGNED_TO] = board.assignedTo
+
+        mFireStore.collection(Constants.BOARDS)
+            .document(board.documentId)
+            .update(assignedToHashMap)
+            .addOnSuccessListener {
+                Log.e(activity.javaClass.simpleName, "TaskList updated successfully.")
+                activity.memberAssignSuccess(user)
             }
             .addOnFailureListener { e ->
                 activity.hideProgressDialog()

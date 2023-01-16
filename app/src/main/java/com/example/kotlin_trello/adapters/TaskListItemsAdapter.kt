@@ -2,21 +2,37 @@ package com.example.kotlin_trello.adapters
 
 import android.content.Context
 import android.content.res.Resources
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.os.Bundle
+import android.view.*
 import android.widget.LinearLayout
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.recyclerview.widget.DividerItemDecoration
+import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.kotlin_trello.R
+import com.example.kotlin_trello.models.Board
 import com.example.kotlin_trello.models.Task
+import com.example.kotlin_trello.presentation.BaseActivity
 import com.example.kotlin_trello.presentation.TaskListActivity
+import com.example.kotlin_trello.utils.Constants
+import kotlinx.android.synthetic.main.activity_card_details.*
 import kotlinx.android.synthetic.main.item_task.view.*
+import java.util.*
+
 
 open class TaskListItemsAdapter(
     private val context: Context,
     private var list: ArrayList<Task>
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+
+    // START
+    // A global variable for position dragged FROM.
+    private var mPositionDraggedFrom = -1
+    // A global variable for position dragged TO.
+    private var mPositionDraggedTo = -1
+    // END
 
     /**
      * Inflates the item views which is designed in xml layout file
@@ -50,20 +66,17 @@ open class TaskListItemsAdapter(
      * layout file.
      */
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-        val model = list[position]
+        val model = list[holder.adapterPosition]
 
         if (holder is MyViewHolder) {
 
-            if (position == list.size - 1) {
+            if (holder.adapterPosition == list.size - 1) {
                 holder.itemView.tv_add_task_list.visibility = View.VISIBLE
                 holder.itemView.ll_task_item.visibility = View.GONE
             } else {
                 holder.itemView.tv_add_task_list.visibility = View.GONE
                 holder.itemView.ll_task_item.visibility = View.VISIBLE
             }
-
-            // TODO (Step 5: Add a click event for showing the view for adding the task list name. And also set the task list title name.)
-            // START
 
             holder.itemView.tv_task_list_title.text = model.title
 
@@ -72,18 +85,12 @@ open class TaskListItemsAdapter(
                 holder.itemView.tv_add_task_list.visibility = View.GONE
                 holder.itemView.cv_add_task_list_name.visibility = View.VISIBLE
             }
-            // END
 
-            // TODO (Step 6: Add a click event for hiding the view for adding the task list name.)
-            // START
             holder.itemView.ib_close_list_name.setOnClickListener {
                 holder.itemView.tv_add_task_list.visibility = View.VISIBLE
                 holder.itemView.cv_add_task_list_name.visibility = View.GONE
             }
-            // END
 
-            // TODO (Step 11: Add a click event for passing the task list name to the base activity function. To create a task list.)
-            // START
             holder.itemView.ib_done_list_name.setOnClickListener {
                 val listName = holder.itemView.et_task_list_name.text.toString()
 
@@ -96,6 +103,156 @@ open class TaskListItemsAdapter(
                     Toast.makeText(context, "Please Enter List Name.", Toast.LENGTH_SHORT).show()
                 }
             }
+
+            holder.itemView.ib_edit_list_name.setOnClickListener {
+
+                holder.itemView.et_edit_task_list_name.setText(model.title) // Set the existing title
+                holder.itemView.ll_title_view.visibility = View.GONE
+                holder.itemView.cv_edit_task_list_name.visibility = View.VISIBLE
+            }
+
+            holder.itemView.ib_close_editable_view.setOnClickListener {
+                holder.itemView.ll_title_view.visibility = View.VISIBLE
+                holder.itemView.cv_edit_task_list_name.visibility = View.GONE
+            }
+
+            holder.itemView.ib_done_edit_list_name.setOnClickListener {
+                val listName = holder.itemView.et_edit_task_list_name.text.toString()
+
+                if (listName.isNotEmpty()) {
+                    if (context is TaskListActivity) {
+                        context.updateTaskList(holder.adapterPosition, listName, model)
+                    }
+                } else {
+                    Toast.makeText(context, "Please Enter List Name.", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            holder.itemView.ib_delete_list.setOnClickListener {
+
+                alertDialogForDeleteList(holder.adapterPosition, model.title)
+            }
+
+            holder.itemView.tv_add_card.setOnClickListener {
+
+                holder.itemView.tv_add_card.visibility = View.GONE
+                holder.itemView.cv_add_card.visibility = View.VISIBLE
+
+                holder.itemView.ib_close_card_name.setOnClickListener {
+                    holder.itemView.tv_add_card.visibility = View.VISIBLE
+                    holder.itemView.cv_add_card.visibility = View.GONE
+                }
+
+                holder.itemView.ib_done_card_name.setOnClickListener {
+
+                    val cardName = holder.itemView.et_card_name.text.toString()
+
+                    if (cardName.isNotEmpty()) {
+                        if (context is TaskListActivity) {
+                            context.addCardToTaskList(holder.adapterPosition, cardName)
+                        }
+                    } else {
+                        Toast.makeText(context, "Please Enter Card Detail.", Toast.LENGTH_SHORT)
+                            .show()
+                    }
+                }
+            }
+
+            holder.itemView.rv_card_list.layoutManager = LinearLayoutManager(context)
+            holder.itemView.rv_card_list.setHasFixedSize(true)
+
+            val adapter =
+                CardListItemsAdapter(context, model.cards)
+            holder.itemView.rv_card_list.adapter = adapter
+
+            adapter.setOnClickListener(object :
+                CardListItemsAdapter.OnClickListener {
+                override fun onClick(cardPosition: Int) {
+                    if (context is TaskListActivity) {
+                        context.cardDetails(holder.adapterPosition, cardPosition)
+                    }
+                }
+            })
+
+            // START
+            /**
+             * Creates a divider {@link RecyclerView.ItemDecoration} that can be used with a
+             * {@link LinearLayoutManager}.
+             *
+             * @param context Current context, it will be used to access resources.
+             * @param orientation Divider orientation. Should be {@link #HORIZONTAL} or {@link #VERTICAL}.
+             */
+            val dividerItemDecoration =
+                DividerItemDecoration(context, DividerItemDecoration.VERTICAL)
+            holder.itemView.rv_card_list.addItemDecoration(dividerItemDecoration)
+
+            //  Creates an ItemTouchHelper that will work with the given Callback.
+            val helper = ItemTouchHelper(object :
+                ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0) {
+
+                /*Called when ItemTouchHelper wants to move the dragged item from its old position to
+                 the new position.*/
+                override fun onMove(
+                    recyclerView: RecyclerView,
+                    dragged: RecyclerView.ViewHolder,
+                    target: RecyclerView.ViewHolder
+                ): Boolean {
+                    val draggedPosition = dragged.adapterPosition
+                    val targetPosition = target.adapterPosition
+
+                    // START
+                    if (mPositionDraggedFrom == -1) {
+                        mPositionDraggedFrom = draggedPosition
+                    }
+                    mPositionDraggedTo = targetPosition
+                    // END
+
+                    /**
+                     * Swaps the elements at the specified positions in the specified list.
+                     */
+
+                    /**
+                     * Swaps the elements at the specified positions in the specified list.
+                     */
+                    Collections.swap(list[holder.adapterPosition].cards, draggedPosition, targetPosition)
+
+                    // move item in `draggedPosition` to `targetPosition` in adapter.
+                    adapter.notifyItemMoved(draggedPosition, targetPosition)
+
+                    return false // true if moved, false otherwise
+                }
+
+                // Called when a ViewHolder is swiped by the user.
+                override fun onSwiped(
+                    viewHolder: RecyclerView.ViewHolder,
+                    direction: Int
+                ) { // remove from adapter
+                }
+
+                // START
+                /*Called by the ItemTouchHelper when the user interaction with an element is over and it
+                 also completed its animation.*/
+                override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                    super.clearView(recyclerView, viewHolder)
+
+                    if (mPositionDraggedFrom != -1 && mPositionDraggedTo != -1 && mPositionDraggedFrom != mPositionDraggedTo) {
+
+                        (context as TaskListActivity).updateCardsInTaskList(
+                            holder.adapterPosition,
+                            list[holder.adapterPosition].cards
+                        )
+                    }
+
+                    // Reset the global variables
+                    mPositionDraggedFrom = -1
+                    mPositionDraggedTo = -1
+                }
+                // END
+            })
+
+            /*Attaches the ItemTouchHelper to the provided RecyclerView. If TouchHelper is already
+            attached to a RecyclerView, it will first detach from the previous one.*/
+            helper.attachToRecyclerView(holder.itemView.rv_card_list)
             // END
         }
     }
@@ -120,9 +277,37 @@ open class TaskListItemsAdapter(
         (this * Resources.getSystem().displayMetrics.density).toInt()
 
     /**
+     * Method is used to show the Alert Dialog for deleting the task list.
+     */
+    private fun alertDialogForDeleteList(position: Int, title: String) {
+        val builder = AlertDialog.Builder(context)
+        //set title for alert dialog
+        builder.setTitle("Alert")
+        //set message for alert dialog
+        builder.setMessage("Are you sure you want to delete $title.")
+        builder.setIcon(android.R.drawable.ic_dialog_alert)
+        //performing positive action
+        builder.setPositiveButton("Yes") { dialogInterface, which ->
+            dialogInterface.dismiss() // Dialog will be dismissed
+
+            if (context is TaskListActivity) {
+                context.deleteTaskList(position)
+            }
+        }
+
+        //performing negative action
+        builder.setNegativeButton("No") { dialogInterface, which ->
+            dialogInterface.dismiss() // Dialog will be dismissed
+        }
+        // Create the AlertDialog
+        val alertDialog: AlertDialog = builder.create()
+        // Set other dialog properties
+        alertDialog.setCancelable(false) // Will not allow user to cancel after clicking on remaining screen area.
+        alertDialog.show()  // show the dialog to UI
+    }
+
+    /**
      * A ViewHolder describes an item view and metadata about its place within the RecyclerView.
      */
     class MyViewHolder(view: View) : RecyclerView.ViewHolder(view)
-
 }
-// END

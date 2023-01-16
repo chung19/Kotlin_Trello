@@ -11,17 +11,23 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/icon_trello_app"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:targetApi="31">
 
-
         <meta-data
-            android:name="com.google.android.actions"
-            android:resource="@xml/actions" />
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_ic_notification" />
+        <!-- Set color used with incoming notification messages. This is used when no color is set for the incoming
+             notification message. See README(https://goo.gl/6BKBk7) for more. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/colorAccent" />
+        <!-- [END fcm_default_icon] -->
+
 
         <activity
             android:name=".presentation.SplashActivity"
@@ -47,8 +53,7 @@
         <activity
             android:name=".presentation.MainActivity"
             android:screenOrientation="fullSensor"
-            android:theme="@style/AppTheme.NoActionBar" />
-        <!-- CreateBoardActivity -->
+            android:theme="@style/AppTheme.NoActionBar" /> <!-- CreateBoardActivity -->
         <activity
             android:name=".presentation.CreateBoardActivity"
             android:exported="true"
@@ -63,6 +68,24 @@
             android:name=".presentation.TaskListActivity"
             android:screenOrientation="fullSensor"
             android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".presentation.MembersActivity"
+            android:label="Members"
+            android:screenOrientation="fullSensor"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".presentation.CardDetailsActivity"
+            android:screenOrientation="fullSensor"
+            android:theme="@style/AppTheme.NoActionBar"/>
+        <!--START-->
+        <service
+            android:name=".fcm.MyFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        <!--END-->
     </application>
 
 </manifest>
